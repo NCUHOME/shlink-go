@@ -72,7 +72,8 @@ func Run(ctx context.Context, target, source *store.DB, opts Options) (*Result, 
 	}
 
 	result := new(Result)
-	result.Domains, err = copyDomains(ctx, tx, source, opts.DefaultDomain)
+	var defaultDomainID int64
+	result.Domains, defaultDomainID, err = copyDomains(ctx, tx, source, opts.DefaultDomain)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +91,7 @@ func Run(ctx context.Context, target, source *store.DB, opts Options) (*Result, 
 	}
 	opts.Logger.Info("shlink_import_progress", "table", "tags", "rows", result.Tags)
 
-	result.ShortURLs, err = copyShortURLs(ctx, tx, source)
+	result.ShortURLs, err = copyShortURLs(ctx, tx, source, defaultDomainID)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +103,7 @@ func Run(ctx context.Context, target, source *store.DB, opts Options) (*Result, 
 	}
 	opts.Logger.Info("shlink_import_progress", "table", "short_urls_in_tags", "rows", result.ShortURLTags)
 
-	result.Visits, err = copyVisits(ctx, tx, source, opts.BatchSize, opts.Logger)
+	result.Visits, err = copyVisits(ctx, tx, source, opts.BatchSize, defaultDomainID, opts.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -211,24 +212,24 @@ func targetIsEmpty(ctx context.Context, q queryRower) (bool, error) {
 	return !occupied, nil
 }
 
-func copyDomains(ctx context.Context, tx *sql.Tx, source *store.DB, defaultDomain string) (int64, error) {
+func copyDomains(ctx context.Context, tx *sql.Tx, source *store.DB, defaultDomain string) (int64, int64, error) {
 	rows, err := source.SQL.QueryContext(ctx, `
 		SELECT id, authority, base_url_redirect, regular_not_found_redirect, invalid_short_url_redirect
 		FROM domains ORDER BY id`)
 	if err != nil {
-		return 0, fmt.Errorf("read source domains: %w", err)
+		return 0, 0, fmt.Errorf("read source domains: %w", err)
 	}
 	defer rows.Close()
 
 	defaultDomain = normalizeAuthority(defaultDomain)
 	domains := make([]sourceDomain, 0)
-	var maxID int64
+	var maxID, defaultID int64
 	foundDefault := false
 	for rows.Next() {
 		var item sourceDomain
 		var base, regular, invalid sql.NullString
 		if err := rows.Scan(&item.ID, &item.Authority, &base, &regular, &invalid); err != nil {
-			return 0, fmt.Errorf("scan source domain: %w", err)
+			return 0, 0, fmt.Errorf("scan source domain: %w", err)
 		}
 		item.Authority = normalizeAuthority(item.Authority)
 		item.BaseURLRedirect = nullString(base)
@@ -236,16 +237,20 @@ func copyDomains(ctx context.Context, tx *sql.Tx, source *store.DB, defaultDomai
 		item.InvalidShortURLRedirect = nullString(invalid)
 		item.IsDefault = item.Authority == defaultDomain
 		foundDefault = foundDefault || item.IsDefault
+		if item.IsDefault {
+			defaultID = item.ID
+		}
 		if item.ID > maxID {
 			maxID = item.ID
 		}
 		domains = append(domains, item)
 	}
 	if err := rows.Err(); err != nil {
-		return 0, fmt.Errorf("read source domains: %w", err)
+		return 0, 0, fmt.Errorf("read source domains: %w", err)
 	}
 	if !foundDefault {
 		maxID++
+		defaultID = maxID
 		domains = append(domains, sourceDomain{
 			ID:        maxID,
 			Authority: defaultDomain,
@@ -261,10 +266,10 @@ func copyDomains(ctx context.Context, tx *sql.Tx, source *store.DB, defaultDomai
 			item.ID, item.Authority, item.IsDefault, item.BaseURLRedirect,
 			item.Regular404Redirect, item.InvalidShortURLRedirect,
 		); err != nil {
-			return 0, fmt.Errorf("insert domain %d: %w", item.ID, err)
+			return 0, 0, fmt.Errorf("insert domain %d: %w", item.ID, err)
 		}
 	}
-	return int64(len(domains)), nil
+	return int64(len(domains)), defaultID, nil
 }
 
 func copyAPIKeys(ctx context.Context, tx *sql.Tx, source *store.DB) (int64, int64, error) {
@@ -370,13 +375,15 @@ func copyTags(ctx context.Context, tx *sql.Tx, source *store.DB) (int64, error) 
 	return count, nil
 }
 
-func copyShortURLs(ctx context.Context, tx *sql.Tx, source *store.DB) (int64, error) {
+func copyShortURLs(ctx context.Context, tx *sql.Tx, source *store.DB, defaultDomainID int64) (int64, error) {
 	rows, err := source.SQL.QueryContext(ctx, `
 		SELECT s.id, s.domain_id, s.short_code, s.original_url, s.title, s.date_created,
 			s.valid_since, s.valid_until, s.max_visits, s.crawlable, s.forward_query,
 			s.author_api_key_id,
 			EXISTS (SELECT 1 FROM short_url_redirect_rules r WHERE r.short_url_id = s.id),
-			COALESCE(c.visits_total, 0), COALESCE(c.visits_non_bots, 0), COALESCE(c.visits_bots, 0)
+			COALESCE(c.visits_total, 0)::bigint,
+			COALESCE(c.visits_non_bots, 0)::bigint,
+			COALESCE(c.visits_bots, 0)::bigint
 		FROM short_urls s
 		LEFT JOIN (
 			SELECT short_url_id,
@@ -405,7 +412,8 @@ func copyShortURLs(ctx context.Context, tx *sql.Tx, source *store.DB) (int64, er
 
 	var count int64
 	for rows.Next() {
-		var id, domainID int64
+		var id int64
+		var domainID sql.NullInt64
 		var shortCode, longURL string
 		var title sql.NullString
 		var authorID sql.NullInt64
@@ -422,7 +430,7 @@ func copyShortURLs(ctx context.Context, tx *sql.Tx, source *store.DB) (int64, er
 			return 0, fmt.Errorf("scan source short URL: %w", err)
 		}
 		if _, err := stmt.ExecContext(ctx,
-			id, domainID, shortCode, longURL, nullString(title), dateCreated,
+			id, resolveDomainID(domainID, defaultDomainID), shortCode, longURL, nullString(title), dateCreated,
 			nullTime(validSince), nullTime(validUntil), nullInt(maxVisits), crawlable, forwardQuery,
 			nullInt64(authorID), hasRedirectRules, visitsTotal, visitsNonBots, visitsBots,
 		); err != nil {
@@ -463,7 +471,7 @@ func copyShortURLTags(ctx context.Context, tx *sql.Tx, source *store.DB) (int64,
 	return count, nil
 }
 
-func copyVisits(ctx context.Context, tx *sql.Tx, source *store.DB, batchSize int, logger *slog.Logger) (int64, error) {
+func copyVisits(ctx context.Context, tx *sql.Tx, source *store.DB, batchSize int, defaultDomainID int64, logger *slog.Logger) (int64, error) {
 	stmt, err := tx.PrepareContext(ctx, `
 		INSERT INTO visits
 			(id, short_url_id, domain_id, visited_at, referer, user_agent, remote_ip,
@@ -519,8 +527,12 @@ func copyVisits(ctx context.Context, tx *sql.Tx, source *store.DB, batchSize int
 				countryCode, countryName, regionName, cityName, timezone = sql.NullString{}, sql.NullString{}, sql.NullString{}, sql.NullString{}, sql.NullString{}
 				latitude, longitude = sql.NullFloat64{}, sql.NullFloat64{}
 			}
+			resolvedDomainID := domainID
+			if !resolvedDomainID.Valid && shortURLID.Valid {
+				resolvedDomainID = sql.NullInt64{Int64: defaultDomainID, Valid: true}
+			}
 			if _, err := stmt.ExecContext(ctx,
-				id, nullInt64(shortURLID), nullInt64(domainID), visitedAt,
+				id, nullInt64(shortURLID), nullInt64(resolvedDomainID), visitedAt,
 				nullString(referer), nullString(userAgent), nullString(remoteIP),
 				nullString(visitedURL), nullString(redirectURL), potentialBot,
 				orphanType(visitType), nullString(countryCode), nullString(countryName),
@@ -660,4 +672,11 @@ func nullFloat(value sql.NullFloat64) *float64 {
 	}
 	number := value.Float64
 	return &number
+}
+
+func resolveDomainID(value sql.NullInt64, fallback int64) int64 {
+	if value.Valid {
+		return value.Int64
+	}
+	return fallback
 }

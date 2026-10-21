@@ -55,6 +55,14 @@ func TestRunImportsShlinkData(t *testing.T) {
 	require.Equal(t, int64(1), shortURL.VisitsTotal)
 	require.True(t, shortURL.HasRedirectRules)
 
+	var shortURLDomainID int64
+	require.NoError(t, target.NewRaw("SELECT domain_id FROM short_urls WHERE short_code = ?", "abc123").Scan(t.Context(), &shortURLDomainID))
+	require.NotZero(t, shortURLDomainID)
+
+	var visitDomainID int64
+	require.NoError(t, target.NewRaw("SELECT domain_id FROM visits WHERE id = ?", 100).Scan(t.Context(), &visitDomainID))
+	require.Equal(t, shortURLDomainID, visitDomainID)
+
 	var tagCount int
 	require.NoError(t, target.NewRaw(`
 		SELECT count(*) FROM short_url_tags st
@@ -117,7 +125,7 @@ func createSourceSchema(t *testing.T, db *store.DB) {
 		)`,
 		`CREATE TABLE short_urls (
 			id BIGSERIAL PRIMARY KEY,
-			domain_id BIGINT NOT NULL REFERENCES domains(id),
+			domain_id BIGINT REFERENCES domains(id),
 			short_code TEXT NOT NULL,
 			original_url TEXT NOT NULL,
 			title TEXT,
@@ -160,7 +168,7 @@ func createSourceSchema(t *testing.T, db *store.DB) {
 		)`,
 		`CREATE TABLE short_url_visits_counts (
 			id BIGSERIAL PRIMARY KEY,
-			short_url_id BIGINT NOT NULL REFERENCES short_urls(id) ON DELETE CASCADE,
+			short_url_id BIGINT REFERENCES short_urls(id) ON DELETE CASCADE,
 			potential_bot BOOLEAN NOT NULL DEFAULT FALSE,
 			"count" BIGINT NOT NULL DEFAULT 1,
 			slot_id INTEGER NOT NULL,
@@ -205,7 +213,7 @@ func seedSourceData(t *testing.T, db *store.DB) {
 		{`INSERT INTO tags (id, name) VALUES (1, 'foo'), (2, 'bar')`, nil},
 		{`INSERT INTO short_urls
 			(id, domain_id, short_code, original_url, title, date_created, crawlable, forward_query, author_api_key_id)
-		 VALUES (10, 1, 'abc123', 'https://example.com/imported', 'Imported', '2025-01-02T03:04:05Z', TRUE, TRUE, 1)`, nil},
+		 VALUES (10, NULL, 'abc123', 'https://example.com/imported', 'Imported', '2025-01-02T03:04:05Z', TRUE, TRUE, 1)`, nil},
 		{`INSERT INTO short_urls_in_tags (short_url_id, tag_id) VALUES (10, 1), (10, 2)`, nil},
 		{`INSERT INTO visit_locations
 			(id, country_code, country_name, region_name, city_name, timezone, lat, lon, is_empty)
