@@ -110,8 +110,8 @@ func (s *Service) Replace(ctx context.Context, shortURLID int64, defaultLongURL 
 			return nil, err
 		}
 		if _, err := tx.NewRaw(
-			"INSERT INTO redirect_rules (short_url_id, priority, long_url, conditions) VALUES (?, ?, ?, ?)",
-			shortURLID, rule.Priority, rule.LongURL, conditions,
+			"INSERT INTO redirect_rules (short_url_id, priority, long_url, conditions) VALUES (?, ?, ?, ?::jsonb)",
+			shortURLID, rule.Priority, rule.LongURL, string(conditions),
 		).Exec(ctx); err != nil {
 			return nil, err
 		}

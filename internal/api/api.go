@@ -11,5 +11,7 @@ func NewHuma(engine *gin.Engine) huma.API {
 	cfg.OpenAPIPath = ""
 	cfg.DocsPath = ""
 	cfg.SchemasPath = ""
+	// Shlink v3 responses do not include Huma's $schema field or Link header.
+	cfg.CreateHooks = nil
 	return humagin.New(engine, cfg)
 }

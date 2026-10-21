@@ -92,7 +92,10 @@ func TestSetRedirectRules(t *testing.T) {
 	testutil.SeedRedirectRules(t, db, shortURLs["1/def456"])
 	app := testutil.NewApp(t, db)
 
-	rec := performRequest(t, app.Handler(), http.MethodPost, "/rest/v3/short-urls/invalid/redirect-rules", requestOptions{APIKey: "valid_api_key"})
+	rec := performRequest(t, app.Handler(), http.MethodPost, "/rest/v3/short-urls/invalid/redirect-rules", requestOptions{
+		APIKey: "valid_api_key",
+		Body:   map[string]any{"redirectRules": []any{}},
+	})
 	payload := requireProblem(t, rec, http.StatusNotFound, problem.TypeShortURLNotFound)
 	require.Equal(t, "invalid", payload.ShortCode)
 
