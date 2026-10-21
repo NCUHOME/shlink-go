@@ -4,9 +4,9 @@
 
 ## 当前状态
 
-- 阶段：P0-P8 代码与测试代码已完成
+- 阶段：P0-P10 代码与测试代码已完成
 - 状态：等待用户执行实际测试；本轮未运行 `go test`
-- 已完成：认证、短链 CRUD、跳转与访问记录、缩略统计、标签、域名、重定向规则、CLI、Docker 部署文件、契约/golden 测试
+- 已完成：完整 v3 接口、认证、短链 CRUD、跳转与访问记录、缩略统计、标签、域名、重定向规则、Shlink 数据库迁移、CLI、Docker 部署文件、契约/golden 测试
 - 待执行：用户运行单元测试、集成测试、race、lint 与 Web Client 手工冒烟
 - 最后静态检查：2026-10-21
 - 静态检查命令：`gofmt -w internal cmd migrations && go build ./... && go vet -tags=integration ./...`
@@ -30,6 +30,8 @@
 - 重定向规则 11 类条件、priority 排序、整体替换与 `has_redirect_rules` 维护。
 - Cobra CLI、优雅关闭、Dockerfile、docker-compose、`.env.example`。
 - 上游测试映射对应的 Go 单元/集成测试、OpenAPI 契约测试与 golden JSON。
+- v3 缺失接口 `shorten` 与 `track` 已补齐。
+- Shlink 5.x PostgreSQL → 本项目 schema 的事务式自动迁移已实现，支持 CLI 和 `SHLINK_SOURCE_DATABASE_URL` 启动迁移。
 
 ### 已知缺口
 
@@ -53,7 +55,7 @@
 - 技术栈：严格按 `docs/技术选型.md`。
 - 数据库：只支持 PostgreSQL。
 - 契约优先级：上游 `docs/reference/swagger` 与 `../shlink/module/*/test-api` 的断言优先于 `README.md` 中的简化示例。
-- 不做：旧 Shlink 数据迁移、v1/v2 API、`shorten`、`track`、导入器、`deviceLongUrls`、Redis、RabbitMQ、Mercure、Matomo、标题自动解析。
+- 不做：v1/v2 API、原版内置导入器、Redis、RabbitMQ、Mercure、Matomo、标题自动解析。
 
 ## 技术基线
 
@@ -215,7 +217,7 @@ go test -tags=integration ./internal/shorturl/... ./internal/domain/... ./intern
 - GeoIP
 - orphan 分类与域名级跳转
 - `robots.txt`
-- `/{shortCode}/track` 404
+- `/{shortCode}/track` 路由占位（P9 补齐真实行为）
 
 ### 任务
 
@@ -227,7 +229,7 @@ go test -tags=integration ./internal/shorturl/... ./internal/domain/... ./intern
 - [x] **P4-T6** 实现 `internal/geoip`：GeoLite2-City 读取；未配置时返回空位置；按配置匿名化 IP。
 - [x] **P4-T7** 实现 orphan 分类：`base_url`、`invalid_short_url`、`regular_404`，以及域名级 `baseUrlRedirect`、`regular404Redirect`、`invalidShortUrlRedirect`。
 - [x] **P4-T8** 实现 `robots.txt`，只输出 `crawlable=true` 的短链。
-- [x] **P4-T9** 保留 `GET /{shortCode}/track` 并返回 404，不进入 orphan 逻辑。
+- [x] **P4-T9** 保留 `GET /{shortCode}/track` 路由；P9 已补齐真实 tracking pixel 行为。
 - [x] **P4-T10** 移植并跑通 `Core/test-api/Action/RedirectTest.php`、`RobotsTest.php`，以及 P3 剩余的 4 个依赖跳转的用例。（覆盖 `internal/api/redirect_integration_test.go` 与 `internal/redirect/service_test.go`）
 
 ### Gate
@@ -349,6 +351,72 @@ golangci-lint run
 
 ---
 
+## P9 完整 v3 接口补齐
+
+### 交付物
+
+- `GET /rest/v3/short-urls/shorten`
+- `GET /{shortCode}/track`
+- query `apiKey` 认证协商
+- Huma schema 命名冲突修复
+
+### 任务
+
+- [x] **P9-T1** 实现 `shortenUrl`：支持 `longUrl`、`apiKey` query 参数、`format=txt|json` 和 `Accept: text/plain`。
+- [x] **P9-T2** 为 `shortenUrl` 实现独立的缺失认证错误：`Expected authentication to be provided in "apiKey" query param`。
+- [x] **P9-T3** 实现 `trackShortUrl`：返回 1×1 透明 GIF；有效短链记录访问，无效短链仍返回 GIF。
+- [x] **P9-T4** 修复 Huma 对 `ListResult` schema 的重复命名，避免应用启动注册路由时 panic。
+- [x] **P9-T5** 添加 JSON、纯文本、query API Key 与 tracking pixel 集成测试。
+
+### Gate
+
+```bash
+go test -tags=integration ./internal/api/...
+```
+
+---
+
+## P10 Shlink PostgreSQL 自动迁移
+
+### 交付物
+
+- 原 Shlink 5.x PostgreSQL schema 读取与映射
+- 单事务、失败回滚、可重跑
+- `migrate-shlink` CLI
+- `SHLINK_SOURCE_DATABASE_URL` 启动自动迁移
+
+### 迁移映射
+
+| 原 Shlink | 本项目 |
+|---|---|
+| `domains` / `regular_not_found_redirect` | `domains` / `regular_404_redirect` |
+| `short_urls.original_url` | `short_urls.long_url` |
+| `short_urls_in_tags` | `short_url_tags` |
+| `api_keys.key` / `expiration_date` | `api_keys.key_hash` / `expires_at` |
+| `api_key_roles.role_name` | `api_key_roles.role` |
+| `visit_locations` + `visits.visit_location_id` | `visits` 内嵌位置字段 |
+| `short_url_visits_counts` | `short_urls.visits_total/non_bots/bots` |
+| `short_url_redirect_rules` + `redirect_conditions` + 关联表 | `redirect_rules.conditions` JSONB |
+
+### 任务
+
+- [x] **P10-T1** 校验源库 schema，缺失 Shlink 5.x 字段时给出明确错误。
+- [x] **P10-T2** 迁移 domains、API keys/roles、tags、short URLs、标签关联和访问计数。
+- [x] **P10-T3** 分批迁移 visits，合并 `visit_locations`，映射 orphan 类型。
+- [x] **P10-T4** 迁移重定向规则和条件，并保留 priority 顺序。
+- [x] **P10-T5** 在单事务内执行，目标库非空时拒绝；失败整体回滚，可直接重跑。
+- [x] **P10-T6** 实现 `shlink-go migrate-shlink --source-url ...`。
+- [x] **P10-T7** 实现 `SHLINK_SOURCE_DATABASE_URL`：`serve` 启动时自动迁移，目标库非空时跳过。
+- [x] **P10-T8** 编写迁移集成测试，覆盖各表、计数器、位置、orphan 和重定向规则。
+
+### Gate
+
+```bash
+go test -tags=integration ./internal/shlinkmigrate/...
+```
+
+---
+
 ## 上游测试映射
 
 | 上游测试 | Go 测试 | 阶段 | 说明 |
@@ -363,7 +431,7 @@ golangci-lint run
 | `Rest/test-api/Action/EditShortUrlTest.php` | `internal/api/shorturl_extended_integration_test.go` | P3 | 完整：编辑主流程已覆盖 |
 | `Rest/test-api/Action/DeleteShortUrlTest.php` | `internal/api/shorturl_extended_integration_test.go` | P3 | 完整：删除主流程已覆盖 |
 | `Rest/test-api/Action/ResolveShortUrlTest.php` | `internal/api/shorturl_extended_integration_test.go` | P3/P4 | 完整；1 个跳转方法在 P4 覆盖 |
-| `Rest/test-api/Action/SingleStepCreateShortUrlTest.php` | 不适用 | - | `README.md` 明确不做 `POST /short-urls/shorten` |
+| `Rest/test-api/Action/SingleStepCreateShortUrlTest.php` | `internal/api/shorten_track_integration_test.go` | P9 | 完整：JSON、纯文本、query API Key |
 | `Core/test-api/Action/RedirectTest.php` | `internal/api/redirect_integration_test.go`、`internal/redirect/service_test.go` | P4 | 完整 |
 | `Core/test-api/Action/RobotsTest.php` | `internal/api/redirect_integration_test.go` | P4 | 完整 |
 | `Rest/test-api/Action/ListTagsTest.php` | `internal/api/tag_integration_test.go` | P5 | 完整 |
@@ -388,7 +456,7 @@ golangci-lint run
 不迁移：
 
 - PHP 单元测试（`module/*/test`）与数据库测试（`module/*/test-db`）不 1:1 移植，只作为边界用例参考。
-- v1/v2 用例、`shorten`、`track`、`deviceLongUrls`、导入器、Mercure 内部实现。
+- v1/v2 用例、原版内置导入器、Mercure 内部实现。
 - CLI 测试除 `api-key:*` 外不移植。
 
 ## 契约决策
@@ -423,7 +491,7 @@ golangci-lint run
 ## 决策记录
 
 - **D1**：Go module path 使用 `github.com/hakimyu/shlink-go`。
-- **D2**：旧 Shlink 数据迁移不在本次范围；需要时单独实现 `cmd/migrate-shlink`。
+- **D2**：旧 Shlink 数据迁移通过独立源库导入到空的新库；不兼容原 schema 原地运行。
 - **D3**：上游 `test-api` 是阻塞验收套件，v1/v2 与超范围用例显式豁免。
 - **D4**：只做本地 commit；未经许可不 push。
 - **D5**：环境变量按 `docs/技术选型.md`，不实现与上游旧变量名的双别名。
@@ -433,6 +501,7 @@ golangci-lint run
 - 2026-10-21：创建本计划文件，确定 P0-P8 阶段、Gate 和上游测试映射。
 - 2026-10-21：完成 P0、P1 工程基线，以及 P2 认证主体、P3 短链 CRUD/列表核心实现。
 - 2026-10-21：修复集成测试包导入环；`go test -tags=integration ./internal/...` 的 28 个测试通过。
-- 2026-10-21：同步计划的实际进度与缺口；`SingleStepCreateShortUrlTest` 标记为明确不适用。
+- 2026-10-21：同步计划的实际进度与缺口；`SingleStepCreateShortUrlTest` 当时标记为明确不适用，P9 已补齐该接口。
 - 2026-10-21：完成 P4-P8 代码、上游测试映射、契约/golden 测试、CLI 与 Docker 部署文件；静态检查通过，实际测试按用户要求留待本地执行。
 - 2026-10-21：复跑静态检查；修复设置重定向规则时先校验短链存在、GeoIP 使用原始 IP 查询、空标签条件防护，并改用 testcontainers PostgreSQL 标准等待策略。
+- 2026-10-21：补齐 v3 `shorten` 与 `track`，修复 Huma schema 重名导致的启动 panic；实现 Shlink 5.x PostgreSQL 自动迁移及迁移测试代码。

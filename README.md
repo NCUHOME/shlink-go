@@ -1,9 +1,9 @@
 # Shlink 后端 Go 重写范围与兼容性说明
 
-- 目标：使用 Go 重写 Shlink 后端，继续使用官方 `shlink-web-client`
+- 目标：使用 Go 重写 Shlink 后端，完整兼容 Shlink 5.1.7 的 REST API v3，并继续使用官方 `shlink-web-client`
 - 数据库：只支持 PostgreSQL
 - 使用场景：自己使用；保留多 API Key 与角色权限
-- 原则：数据库 schema 可以重新设计，但 Web 端依赖的 API 契约和行为必须兼容
+- 原则：数据库 schema 可以重新设计；API v3 契约和行为必须兼容；提供原 Shlink PostgreSQL 数据的一次性自动迁移
 
 ## 目标运行形态
 
@@ -33,16 +33,14 @@
 ### 明确不做
 
 - MySQL、MariaDB、SQL Server、SQLite
-- 除 API Key 管理外的 CLI 命令
-- 5 种导入源：Bitly、CSV、Kutt、Shlink、YOURLS
+- 除 API Key 管理和 `migrate-shlink` 外的 CLI 命令
+- 原版内置导入器：Bitly、CSV、Kutt、Shlink、YOURLS
 - 原版安装器
 - Matomo
 - RabbitMQ
 - Redis
 - Mercure 实时刷新（`GET /rest/v3/mercure-info` 固定返回未配置错误）
-- `POST /short-urls/shorten`
-- `GET /{shortCode}/track`
-- `deviceLongUrls`
+- v1/v2 API
 
 ### 最小运维能力
 
@@ -51,10 +49,11 @@
 - 建表 / migration
 - 初始化第一个 API Key：空库时通过 `INITIAL_API_KEY` 创建无角色（管理员）Key
 - API Key 管理命令：`api-key:generate`、`api-key:list`、`api-key:disable`、`api-key:delete`、`api-key:rename`
+- Shlink 数据库迁移命令：`migrate-shlink`
 - 准备 GeoLite2 数据库文件
 - 健康检查
 
-除上述最小能力和 `api-key:*` 子集外，不保留其他 CLI 命令。原版没有 API Key 的 REST 管理接口，本重写也不新增。
+除上述最小能力、`api-key:*` 子集和 `migrate-shlink` 外，不保留其他 CLI 命令。原版没有 API Key 的 REST 管理接口，本重写也不新增。
 
 ## 2. Web 功能覆盖
 
@@ -93,6 +92,7 @@ Web 端通过 `@shlinkio/shlink-js-sdk` 调用 `/rest/v3`，需要兼容以下�
 |---|---|---|
 | GET | `/rest/v3/short-urls` | 短链列表 |
 | POST | `/rest/v3/short-urls` | 创建短链 |
+| GET | `/rest/v3/short-urls/shorten` | 兼容旧的单步创建短链接口，API Key 通过 `apiKey` query 参数传递 |
 | GET | `/rest/v3/short-urls/{shortCode}` | 获取短链详情 |
 | DELETE | `/rest/v3/short-urls/{shortCode}` | 删除短链 |
 | PATCH | `/rest/v3/short-urls/{shortCode}` | 编辑短链 |
@@ -145,6 +145,7 @@ Web 端通过 `@shlinkio/shlink-js-sdk` 调用 `/rest/v3`，需要兼容以下�
 | Method | Path | 用途 |
 |---|---|---|
 | GET | `/{shortCode}` | 短链跳转 |
+| GET | `/{shortCode}/track` | 返回 1×1 GIF，并记录一次有效访问 |
 | GET | `/robots.txt` | 输出可被爬取的短链 |
 
 ## 4. 关键 DTO 与响应格式
@@ -545,8 +546,23 @@ Web 端会根据 `version` 决定是否显示某些功能入口，例如 IP 重�
 - 建议表：`short_urls`、`tags`、`short_url_tags`、`domains`、`visits`、`visit_locations`、`redirect_rules`、`redirect_conditions`、`api_keys`、`api_key_roles`；短链表需要 `author_api_key_id`
 - API 的 JSON DTO 必须保持兼容，数据库结构不需要兼容
 - GeoLite2 数据库文件由部署环境提供，不实现自动下载和安装器
-- 如果已有旧 Shlink 数据，需要单独做一次性数据迁移；如果从零开始则不需要
-- 不实现导入器，但可以为旧数据写一次性的迁移脚本
+- 提供 `migrate-shlink` 命令，从原 Shlink 5.x PostgreSQL 库读取并自动导入到空的新库
+- 支持通过 `SHLINK_SOURCE_DATABASE_URL` 在首次 `serve` 启动时自动执行迁移；目标库非空时跳过
+- 源库与目标库必须是两个不同的数据库，因为两套 schema 的表名和字段不兼容
+- 迁移在一个事务内完成；失败会整体回滚，可直接重跑
+
+推荐迁移步骤：
+
+```bash
+# DATABASE_URL 指向空的新库，源库继续指向原 Shlink
+export SHLINK_SOURCE_DATABASE_URL='postgres://shlink:shlink@old-host:5432/shlink?sslmode=disable'
+
+# 显式执行迁移，或直接 serve；serve 检测到目标库为空时会自动迁移
+shlink-go migrate-shlink
+shlink-go serve
+```
+
+迁移会保留原 domain、tag、short URL、API key、visit、redirect rule 的主键关联，并保留访问计数与 GeoIP 位置。迁移完成后可以先并行只读校验，再切换流量。
 
 ## 8. 验收标准
 
@@ -557,6 +573,8 @@ Web 端会根据 `version` 决定是否显示某些功能入口，例如 IP 重�
 - Tags、Domains、Redirect Rules 页面正常
 - Mercure 未启用时，`/mercure-info` 返回 `501 mercure-not-configured`，Web 端其他页面正常，但没有实时刷新
 - API 错误格式、字段名、可空性、日期格式与 Web 端预期一致
+- `GET /rest/v3/short-urls/shorten` 的 JSON、纯文本和 query API Key 行为与上游一致
+- `GET /{shortCode}/track` 返回 `image/gif`，有效短链会记录访问，无效短链仍返回图片
 - 访问统计接口在 `itemsPerPage=5000` 时仍能正常分页返回
 - `X-Api-Key` 认证、CORS、健康检查正常
 - 多 API Key、过期/禁用校验和三类角色的数据隔离行为与 Shlink 一致
@@ -571,4 +589,4 @@ Web 端会根据 `version` 决定是否显示某些功能入口，例如 IP 重�
 3. **GeoIP 地理位置**：保留则需要 GeoLite2；不需要则访问位置信息为空。
 4. **Orphan visits**：保留则实现 404/orphan 跟踪；不需要则 orphan 页面为空。
 5. **标题自动解析**：保留则创建短链时自动访问目标 URL 提取标题；不需要则只能手动填写。
-6. **历史数据迁移**：如果当前已有 Shlink 数据，需要确认是否迁移以及迁移方式。
+6. **历史数据迁移**：已确认需要自动迁移；目标库必须为空，源库要求为 Shlink 5.x PostgreSQL schema。

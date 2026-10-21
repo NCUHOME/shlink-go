@@ -12,7 +12,7 @@
 
 官方 OpenAPI 3.1 规范，包含 `swagger.json` 以及 `paths/`、`definitions/`、`parameters/`、`examples/`。
 
-注意：该规范覆盖原版全部接口，包含 v1/v2、`shorten`、`track`、导入等本仓库明确不实现的内容。实际实现范围以根目录 `README.md` 为准。
+注意：该规范覆盖原版全部接口，包含 v1/v2 和多种导入源等本仓库未全部实现的内容。实际实现范围以根目录 `README.md` 为准。
 
 ## 未搬入的内容
 
