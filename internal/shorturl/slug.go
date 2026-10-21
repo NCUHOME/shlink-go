@@ -51,13 +51,13 @@ func GenerateCode(length int, chars string) (string, error) {
 		return "", fmt.Errorf("invalid short code parameters")
 	}
 	result := make([]byte, length)
-	limit := byte(256 - (256 % len(chars)))
+	limit := uint16(256 - (256 % len(chars)))
 	for i := 0; i < length; {
 		var b [1]byte
 		if _, err := rand.Read(b[:]); err != nil {
 			return "", err
 		}
-		if b[0] >= limit {
+		if uint16(b[0]) >= limit {
 			continue
 		}
 		result[i] = chars[int(b[0])%len(chars)]
