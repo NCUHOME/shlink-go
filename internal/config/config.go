@@ -18,6 +18,8 @@ type Config struct {
 	DatabaseURL string `env:"DATABASE_URL,required"`
 	ListenAddr  string `env:"LISTEN_ADDR" envDefault:":8080"`
 
+	ShlinkSourceDatabaseURL string `env:"SHLINK_SOURCE_DATABASE_URL"`
+
 	DefaultDomain  string `env:"DEFAULT_DOMAIN,required"`
 	ISHTTPSEnabled bool   `env:"IS_HTTPS_ENABLED" envDefault:"false"`
 	InitialAPIKey  string `env:"INITIAL_API_KEY"`

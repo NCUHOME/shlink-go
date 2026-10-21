@@ -16,6 +16,20 @@ import (
 
 func NewPostgres(t *testing.T) *store.DB {
 	t.Helper()
+	db := newPostgres(t)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	t.Cleanup(cancel)
+	require.NoError(t, store.Migrate(ctx, db))
+	return db
+}
+
+func NewPostgresRaw(t *testing.T) *store.DB {
+	t.Helper()
+	return newPostgres(t)
+}
+
+func newPostgres(t *testing.T) *store.DB {
+	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	t.Cleanup(cancel)
 
@@ -37,6 +51,5 @@ func NewPostgres(t *testing.T) *store.DB {
 	db, err := store.Open(ctx, dsn)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = db.Close() })
-	require.NoError(t, store.Migrate(ctx, db))
 	return db
 }

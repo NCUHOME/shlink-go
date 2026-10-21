@@ -24,6 +24,7 @@ import (
 	"github.com/hakimyu/shlink-go/internal/app"
 	"github.com/hakimyu/shlink-go/internal/config"
 	"github.com/hakimyu/shlink-go/internal/domain"
+	"github.com/hakimyu/shlink-go/internal/shlinkmigrate"
 	"github.com/hakimyu/shlink-go/internal/store"
 )
 
@@ -37,7 +38,16 @@ func Execute() int {
 
 func newRootCommand() *cobra.Command {
 	root := &cobra.Command{Use: "shlink-go"}
-	root.AddCommand(serveCommand(), migrateCommand(), generateAPIKeyCommand(), listAPIKeysCommand(), disableAPIKeyCommand(), deleteAPIKeyCommand(), renameAPIKeyCommand())
+	root.AddCommand(
+		serveCommand(),
+		migrateCommand(),
+		migrateShlinkCommand(),
+		generateAPIKeyCommand(),
+		listAPIKeysCommand(),
+		disableAPIKeyCommand(),
+		deleteAPIKeyCommand(),
+		renameAPIKeyCommand(),
+	)
 	return root
 }
 
@@ -58,6 +68,9 @@ func serveCommand() *cobra.Command {
 			}
 			defer func() { _ = db.Close() }()
 			if err := store.Migrate(ctx, db); err != nil {
+				return err
+			}
+			if err := autoMigrateShlink(ctx, cfg, db, logger); err != nil {
 				return err
 			}
 			if err := apikey.EnsureInitial(ctx, db.DB, cfg.InitialAPIKey); err != nil {
@@ -119,6 +132,94 @@ func migrateCommand() *cobra.Command {
 			return store.Migrate(ctx, db)
 		},
 	}
+}
+
+func migrateShlinkCommand() *cobra.Command {
+	var sourceURL string
+	var batchSize int
+	cmd := &cobra.Command{
+		Use:   "migrate-shlink",
+		Short: "Import data from an existing Shlink PostgreSQL database",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			cfg, logger, err := loadConfigAndLogger()
+			if err != nil {
+				return err
+			}
+			if strings.TrimSpace(sourceURL) == "" {
+				sourceURL = cfg.ShlinkSourceDatabaseURL
+			}
+			if strings.TrimSpace(sourceURL) == "" {
+				return errors.New("--source-url is required (or set SHLINK_SOURCE_DATABASE_URL)")
+			}
+			if sourceURL == cfg.DatabaseURL {
+				return errors.New("source and target database URLs must point to different databases")
+			}
+
+			ctx := context.Background()
+			target, err := openMigratedDB(ctx, cfg)
+			if err != nil {
+				return err
+			}
+			defer func() { _ = target.Close() }()
+			source, err := store.Open(ctx, sourceURL)
+			if err != nil {
+				return err
+			}
+			defer func() { _ = source.Close() }()
+
+			result, err := shlinkmigrate.Run(ctx, target, source, shlinkmigrate.Options{
+				DefaultDomain: cfg.DefaultDomain,
+				BatchSize:     batchSize,
+				Logger:        logger,
+			})
+			if err != nil {
+				return err
+			}
+			printMigrationResult(result)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&sourceURL, "source-url", "", "Source Shlink PostgreSQL connection URL")
+	cmd.Flags().IntVar(&batchSize, "batch-size", 1000, "Number of visits copied per batch")
+	return cmd
+}
+
+func autoMigrateShlink(ctx context.Context, cfg config.Config, target *store.DB, logger *slog.Logger) error {
+	if strings.TrimSpace(cfg.ShlinkSourceDatabaseURL) == "" {
+		return nil
+	}
+	if cfg.ShlinkSourceDatabaseURL == cfg.DatabaseURL {
+		return errors.New("SHLINK_SOURCE_DATABASE_URL and DATABASE_URL must point to different databases")
+	}
+	source, err := store.Open(ctx, cfg.ShlinkSourceDatabaseURL)
+	if err != nil {
+		return fmt.Errorf("open Shlink source database: %w", err)
+	}
+	defer func() { _ = source.Close() }()
+
+	logger.Info("shlink_import_started")
+	result, err := shlinkmigrate.Run(ctx, target, source, shlinkmigrate.Options{
+		DefaultDomain: cfg.DefaultDomain,
+		BatchSize:     1000,
+		Logger:        logger,
+	})
+	if errors.Is(err, shlinkmigrate.ErrTargetNotEmpty) {
+		logger.Info("shlink_import_skipped", "reason", "target database is not empty")
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("migrate Shlink data: %w", err)
+	}
+	printMigrationResult(result)
+	return nil
+}
+
+func printMigrationResult(result *shlinkmigrate.Result) {
+	fmt.Printf(
+		"Imported %d domains, %d API keys, %d API key roles, %d tags, %d short URLs, %d short URL tags, %d visits and %d redirect rules.\n",
+		result.Domains, result.APIKeys, result.APIKeyRoles, result.Tags,
+		result.ShortURLs, result.ShortURLTags, result.Visits, result.RedirectRules,
+	)
 }
 
 func generateAPIKeyCommand() *cobra.Command {
