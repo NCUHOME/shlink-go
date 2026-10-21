@@ -318,7 +318,7 @@ func copyAPIKeys(ctx context.Context, tx *sql.Tx, source *store.DB) (int64, int6
 	}
 
 	roles, err := source.SQL.QueryContext(ctx, `
-		SELECT api_key_id, role_name, COALESCE(meta, '{}'::jsonb)::text
+		SELECT api_key_id, role_name, COALESCE(meta::text, '{}')
 		FROM api_key_roles ORDER BY id`)
 	if err != nil {
 		return 0, 0, fmt.Errorf("read source API key roles: %w", err)

@@ -107,7 +107,7 @@ func createSourceSchema(t *testing.T, db *store.DB) {
 		`CREATE TABLE api_key_roles (
 			id BIGSERIAL PRIMARY KEY,
 			role_name TEXT NOT NULL,
-			meta JSONB NOT NULL DEFAULT '{}'::jsonb,
+			meta JSON NOT NULL DEFAULT '{}'::json,
 			api_key_id BIGINT NOT NULL REFERENCES api_keys(id) ON DELETE CASCADE,
 			UNIQUE (role_name, api_key_id)
 		)`,
@@ -201,7 +201,7 @@ func seedSourceData(t *testing.T, db *store.DB) {
 			apikey.Hash("valid_api_key"),
 			apikey.Hash("second_api_key"),
 		}},
-		{`INSERT INTO api_key_roles (id, role_name, meta, api_key_id) VALUES (1, 'AUTHORED_SHORT_URLS', '{}'::jsonb, 1)`, nil},
+		{`INSERT INTO api_key_roles (id, role_name, meta, api_key_id) VALUES (1, 'AUTHORED_SHORT_URLS', '{}'::json, 1)`, nil},
 		{`INSERT INTO tags (id, name) VALUES (1, 'foo'), (2, 'bar')`, nil},
 		{`INSERT INTO short_urls
 			(id, domain_id, short_code, original_url, title, date_created, crawlable, forward_query, author_api_key_id)
