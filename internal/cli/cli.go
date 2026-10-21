@@ -191,6 +191,14 @@ func autoMigrateShlink(ctx context.Context, cfg config.Config, target *store.DB,
 	if cfg.ShlinkSourceDatabaseURL == cfg.DatabaseURL {
 		return errors.New("SHLINK_SOURCE_DATABASE_URL and DATABASE_URL must point to different databases")
 	}
+	empty, err := shlinkmigrate.TargetIsEmpty(ctx, target)
+	if err != nil {
+		return fmt.Errorf("check target database: %w", err)
+	}
+	if !empty {
+		logger.Info("shlink_import_skipped", "reason", "target database is not empty")
+		return nil
+	}
 	source, err := store.Open(ctx, cfg.ShlinkSourceDatabaseURL)
 	if err != nil {
 		return fmt.Errorf("open Shlink source database: %w", err)

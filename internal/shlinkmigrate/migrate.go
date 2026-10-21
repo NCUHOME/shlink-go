@@ -54,9 +54,6 @@ func Run(ctx context.Context, target, source *store.DB, opts Options) (*Result, 
 	if target == nil || source == nil {
 		return nil, errors.New("target and source databases are required")
 	}
-	if err := validateSourceSchema(ctx, source); err != nil {
-		return nil, err
-	}
 
 	tx, err := target.SQL.BeginTx(ctx, nil)
 	if err != nil {
@@ -68,6 +65,9 @@ func Run(ctx context.Context, target, source *store.DB, opts Options) (*Result, 
 		return nil, fmt.Errorf("lock target database: %w", err)
 	}
 	if err := ensureTargetEmpty(ctx, tx); err != nil {
+		return nil, err
+	}
+	if err := validateSourceSchema(ctx, source); err != nil {
 		return nil, err
 	}
 
@@ -173,9 +173,32 @@ func validateSourceSchema(ctx context.Context, source *store.DB) error {
 	return nil
 }
 
+type queryRower interface {
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
+// TargetIsEmpty reports whether the target database has no migrated data yet.
+func TargetIsEmpty(ctx context.Context, target *store.DB) (bool, error) {
+	if target == nil {
+		return false, errors.New("target database is required")
+	}
+	return targetIsEmpty(ctx, target.SQL)
+}
+
 func ensureTargetEmpty(ctx context.Context, tx *sql.Tx) error {
+	empty, err := targetIsEmpty(ctx, tx)
+	if err != nil {
+		return err
+	}
+	if !empty {
+		return ErrTargetNotEmpty
+	}
+	return nil
+}
+
+func targetIsEmpty(ctx context.Context, q queryRower) (bool, error) {
 	var occupied bool
-	err := tx.QueryRowContext(ctx, `
+	err := q.QueryRowContext(ctx, `
 		SELECT EXISTS (SELECT 1 FROM domains)
 		    OR EXISTS (SELECT 1 FROM api_keys)
 		    OR EXISTS (SELECT 1 FROM tags)
@@ -183,12 +206,9 @@ func ensureTargetEmpty(ctx context.Context, tx *sql.Tx) error {
 		    OR EXISTS (SELECT 1 FROM visits)
 		    OR EXISTS (SELECT 1 FROM redirect_rules)`).Scan(&occupied)
 	if err != nil {
-		return fmt.Errorf("check target database: %w", err)
+		return false, fmt.Errorf("check target database: %w", err)
 	}
-	if occupied {
-		return ErrTargetNotEmpty
-	}
-	return nil
+	return !occupied, nil
 }
 
 func copyDomains(ctx context.Context, tx *sql.Tx, source *store.DB, defaultDomain string) (int64, error) {
