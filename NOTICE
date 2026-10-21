@@ -1,0 +1,5 @@
+This project is a Go rewrite of Shlink (https://github.com/shlinkio/shlink).
+
+The OpenAPI specification under docs/reference, the HTML templates under
+templates, and the favicon under public are copied from Shlink and remain
+subject to the MIT License in LICENSE.
