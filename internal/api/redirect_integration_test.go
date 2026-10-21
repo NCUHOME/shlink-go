@@ -249,7 +249,8 @@ Disallow: /
 `, rec.Body.String())
 
 	rec = performRequest(t, app.Handler(), http.MethodGet, "/abc123/track", requestOptions{})
-	require.Equal(t, http.StatusNotFound, rec.Code)
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, "image/gif", rec.Header().Get("Content-Type"))
 }
 
 func TestOrphanVisitsAreTracked(t *testing.T) {

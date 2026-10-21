@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -40,6 +41,17 @@ type listShortURLsInput struct {
 
 type createShortURLInput struct {
 	RawBody []byte `contentType:"application/json"`
+}
+
+type shortenURLInput struct {
+	LongURL string `query:"longUrl"`
+	Format  string `query:"format"`
+	Accept  string `header:"Accept"`
+}
+
+type shortenURLOutput struct {
+	ContentType string `header:"Content-Type"`
+	Body        []byte
 }
 
 type updateShortURLInput struct {
@@ -128,6 +140,50 @@ func RegisterShortURLs(api huma.API, svc *shorturl.Service) {
 			return nil, mapShortURLError(ctx, err, "")
 		}
 		return &shortURLOutput{Body: *created}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID:        "shortenUrl",
+		Method:             http.MethodGet,
+		Path:               "/rest/v3/short-urls/shorten",
+		SkipValidateParams: true,
+		Responses: map[string]*huma.Response{
+			"200": {
+				Description: "The result of parsing the long URL",
+				Content: map[string]*huma.MediaType{
+					"application/json": {},
+					"text/plain":       {},
+				},
+			},
+		},
+	}, func(ctx context.Context, input *shortenURLInput) (*shortenURLOutput, error) {
+		principal, ok := apikey.FromContext(ctx)
+		if !ok {
+			return nil, problem.MissingAuthentication()
+		}
+		created, err := svc.Create(ctx, principal.Scope, &principal.APIKeyID, shorturl.CreateParams{
+			LongURL: input.LongURL,
+		})
+		if err != nil {
+			return nil, mapShortURLError(ctx, err, "")
+		}
+
+		format := strings.ToLower(strings.TrimSpace(input.Format))
+		if format == "" {
+			accept := strings.ToLower(strings.TrimSpace(strings.Split(input.Accept, ",")[0]))
+			if strings.Contains(accept, "text/plain") {
+				format = "txt"
+			}
+		}
+		if format == "txt" {
+			return &shortenURLOutput{ContentType: "text/plain", Body: []byte(created.ShortURL)}, nil
+		}
+
+		body, err := json.Marshal(created)
+		if err != nil {
+			return nil, internalProblem(ctx, err)
+		}
+		return &shortenURLOutput{ContentType: "application/json", Body: body}, nil
 	})
 
 	huma.Register(api, huma.Operation{

@@ -76,6 +76,15 @@ func MissingAuthentication() *Problem {
 	)
 }
 
+func MissingQueryAuthentication() *Problem {
+	return New(
+		http.StatusUnauthorized,
+		TypeMissingAuthentication,
+		"Invalid authorization",
+		`Expected authentication to be provided in "apiKey" query param`,
+	)
+}
+
 func InvalidAPIKey() *Problem {
 	return New(
 		http.StatusUnauthorized,

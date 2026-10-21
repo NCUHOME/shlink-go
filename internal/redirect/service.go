@@ -1,6 +1,7 @@
 package redirect
 
 import (
+	"encoding/base64"
 	"log/slog"
 	"net"
 	"net/http"
@@ -24,6 +25,11 @@ const robotsHeader = `# For more information about the robots.txt standard, see:
 
 User-agent: *
 `
+
+var trackingPixel = func() []byte {
+	pixel, _ := base64.StdEncoding.DecodeString("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==")
+	return pixel
+}()
 
 type Service struct {
 	shortURLs *shorturl.Service
@@ -61,6 +67,7 @@ func NewService(
 func (s *Service) Register(engine *gin.Engine) {
 	engine.GET("/", s.handleBaseURL)
 	engine.GET("/robots.txt", s.handleRobots)
+	engine.GET("/:shortCode/track", s.handleTrack)
 	engine.GET("/:shortCode", s.handleShortURL)
 	engine.NoRoute(s.handleNoRoute)
 }
@@ -119,8 +126,17 @@ func (s *Service) handleShortURLWithExtra(c *gin.Context, shortCode, extraPath s
 	}
 	target = buildRedirectURL(target, c.Request, resolved.ForwardQuery, s.cfg.DisabledTrackParams())
 
-	s.track(c, resolved.DomainID, resolved.ID, target)
+	s.track(c, resolved.DomainID, resolved.ID, &target)
 	c.Redirect(http.StatusFound, target)
+}
+
+func (s *Service) handleTrack(c *gin.Context) {
+	shortCode := c.Param("shortCode")
+	resolved, err := s.shortURLs.ResolveForHost(c.Request.Context(), requestAuthority(c.Request), shortCode)
+	if err == nil && isActive(resolved, s.clock.Now()) {
+		s.track(c, resolved.DomainID, resolved.ID, nil)
+	}
+	c.Data(http.StatusOK, "image/gif", trackingPixel)
 }
 
 func (s *Service) handleBaseURL(c *gin.Context) {
@@ -217,7 +233,7 @@ func (s *Service) ruleRequest(request *http.Request) redirectrule.RequestData {
 	return data
 }
 
-func (s *Service) track(c *gin.Context, domainID, shortURLID int64, redirectURL string) {
+func (s *Service) track(c *gin.Context, domainID, shortURLID int64, redirectURL *string) {
 	if s.trackingDisabled(c.Request) {
 		return
 	}
@@ -230,7 +246,7 @@ func (s *Service) track(c *gin.Context, domainID, shortURLID int64, redirectURL 
 		UserAgent:   c.Request.UserAgent(),
 		RemoteIP:    clientIP(c.Request),
 		VisitedURL:  visitedURL(c.Request),
-		RedirectURL: &redirectURL,
+		RedirectURL: redirectURL,
 		At:          s.clock.Now(),
 	}
 	if err := s.visits.Track(c.Request.Context(), record); err != nil {

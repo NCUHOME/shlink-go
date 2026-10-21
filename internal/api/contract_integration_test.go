@@ -43,6 +43,7 @@ func TestV3ResponsesMatchOpenAPIContract(t *testing.T) {
 	}{
 		{"list short urls", http.MethodGet, "/rest/v3/short-urls", nil, http.StatusOK},
 		{"create short url", http.MethodPost, "/rest/v3/short-urls", map[string]any{"longUrl": "https://example.com/contract", "customSlug": "contract"}, http.StatusOK},
+		{"shorten short url", http.MethodGet, "/rest/v3/short-urls/shorten?longUrl=https%3A%2F%2Fexample.com%2Fshorten&apiKey=valid_api_key", nil, http.StatusOK},
 		{"get short url", http.MethodGet, "/rest/v3/short-urls/abc123", nil, http.StatusOK},
 		{"edit short url", http.MethodPatch, "/rest/v3/short-urls/abc123", map[string]any{"title": "contract title"}, http.StatusOK},
 		{"list redirect rules", http.MethodGet, "/rest/v3/short-urls/def456/redirect-rules", nil, http.StatusOK},
