@@ -1,0 +1,49 @@
+//go:build integration
+
+package testutil
+
+import (
+	"io"
+	"log/slog"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+
+	application "github.com/hakimyu/shlink-go/internal/app"
+	"github.com/hakimyu/shlink-go/internal/clock"
+	"github.com/hakimyu/shlink-go/internal/config"
+	"github.com/hakimyu/shlink-go/internal/store"
+)
+
+func NewApp(t *testing.T, db *store.DB) *application.App {
+	t.Helper()
+	return NewAppWithConfig(t, db, TestConfig(), TestClock())
+}
+
+func NewAppWithConfig(t *testing.T, db *store.DB, cfg config.Config, clk clock.Clock) *application.App {
+	t.Helper()
+	result, err := application.NewWithClock(cfg, db, slog.New(slog.NewTextHandler(io.Discard, nil)), clk)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = result.Close() })
+	return result
+}
+
+func TestClock() clock.Clock {
+	return clock.Fixed{T: time.Date(2021, 6, 1, 0, 0, 0, 0, time.UTC)}
+}
+
+func TestConfig() config.Config {
+	return config.Config{
+		DefaultDomain:           "s.test",
+		ISHTTPSEnabled:          false,
+		CORSAllowedOrigins:      []string{"*"},
+		CORSMaxAge:              3600,
+		ShortURLTrailingSlash:   false,
+		ExtraPathMode:           "default",
+		DefaultShortCodesLength: 5,
+		DefaultShortCodesChars:  "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
+		LogLevel:                "error",
+		TrackOrphanVisits:       true,
+	}
+}

@@ -1,0 +1,24 @@
+{
+  "shortCode": "abc123",
+  "shortUrl": "http://s.test/abc123",
+  "longUrl": "https://shlink.io",
+  "dateCreated": "2018-05-01T00:00:00+00:00",
+  "visitsSummary": {
+    "total": 3,
+    "nonBots": 3,
+    "bots": 0
+  },
+  "tags": [
+    "foo"
+  ],
+  "meta": {
+    "validSince": null,
+    "validUntil": null,
+    "maxVisits": 2
+  },
+  "domain": null,
+  "title": "My cool title",
+  "crawlable": true,
+  "forwardQuery": true,
+  "hasRedirectRules": false
+}

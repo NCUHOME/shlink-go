@@ -1,0 +1,7 @@
+{
+  "type": "https://shlink.io/api/error/short-url-not-found",
+  "title": "Short URL not found",
+  "detail": "No URL found with short code \"invalid\"",
+  "status": 404,
+  "shortCode": "invalid"
+}

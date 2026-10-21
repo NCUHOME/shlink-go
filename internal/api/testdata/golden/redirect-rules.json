@@ -1,0 +1,92 @@
+{
+  "defaultLongUrl": "https://blog.alejandrocelaya.com/2017/12/09/acmailer-7-0-the-most-important-release-in-a-long-time/",
+  "redirectRules": [
+    {
+      "longUrl": "https://example.com/english-and-foo-query",
+      "priority": 1,
+      "conditions": [
+        {
+          "type": "language",
+          "matchKey": null,
+          "matchValue": "en"
+        },
+        {
+          "type": "any-value-query-param",
+          "matchKey": "foo",
+          "matchValue": null
+        }
+      ]
+    },
+    {
+      "longUrl": "https://example.com/multiple-query-params",
+      "priority": 2,
+      "conditions": [
+        {
+          "type": "query-param",
+          "matchKey": "hello",
+          "matchValue": "world"
+        },
+        {
+          "type": "query-param",
+          "matchKey": "foo",
+          "matchValue": "bar"
+        }
+      ]
+    },
+    {
+      "longUrl": "https://example.com/only-english",
+      "priority": 3,
+      "conditions": [
+        {
+          "type": "language",
+          "matchKey": null,
+          "matchValue": "en"
+        }
+      ]
+    },
+    {
+      "longUrl": "android://foo/bar",
+      "priority": 4,
+      "conditions": [
+        {
+          "type": "device",
+          "matchKey": null,
+          "matchValue": "android"
+        }
+      ]
+    },
+    {
+      "longUrl": "fb://profile/33138223345",
+      "priority": 5,
+      "conditions": [
+        {
+          "type": "device",
+          "matchKey": null,
+          "matchValue": "ios"
+        }
+      ]
+    },
+    {
+      "longUrl": "https://example.com/static-ip-address",
+      "priority": 6,
+      "conditions": [
+        {
+          "type": "ip-address",
+          "matchKey": null,
+          "matchValue": "1.2.3.4"
+        }
+      ]
+    },
+    {
+      "longUrl": "https://example.com/linux",
+      "priority": 7,
+      "conditions": [
+        {
+          "type": "device",
+          "matchKey": null,
+          "matchValue": "linux"
+        }
+      ]
+    }
+  ]
+}

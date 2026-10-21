@@ -1,0 +1,43 @@
+{
+  "visits": {
+    "data": [
+      {
+        "referer": "https://s.test/foo",
+        "date": "2020-03-01T00:00:00+00:00",
+        "userAgent": "cf-facebook",
+        "visitLocation": null,
+        "potentialBot": true,
+        "visitedUrl": "https://example.com/short",
+        "redirectUrl": null,
+        "type": "invalid_short_url"
+      },
+      {
+        "referer": "https://s.test/foo/bar",
+        "date": "2020-02-01T00:00:00+00:00",
+        "userAgent": "shlink-tests-agent",
+        "visitLocation": null,
+        "potentialBot": false,
+        "visitedUrl": "https://s.test/bar",
+        "redirectUrl": null,
+        "type": "regular_404"
+      },
+      {
+        "referer": "https://s.test",
+        "date": "2020-01-01T00:00:00+00:00",
+        "userAgent": "shlink-tests-agent",
+        "visitLocation": null,
+        "potentialBot": false,
+        "visitedUrl": "https://s.test/foo",
+        "redirectUrl": null,
+        "type": "base_url"
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "pagesCount": 1,
+      "itemsPerPage": 3,
+      "itemsInCurrentPage": 3,
+      "totalItems": 3
+    }
+  }
+}
