@@ -204,7 +204,7 @@ func (s *Service) ResolveForHost(ctx context.Context, authority, shortCode strin
 	return resolvedFromStored(row), nil
 }
 
-func (s *Service) List(ctx context.Context, scope apikey.Scope, params ListParams) (*ListResult, error) {
+func (s *Service) List(ctx context.Context, scope apikey.Scope, params ListParams) (*ShortURLList, error) {
 	if params.Page <= 0 {
 		params.Page = 1
 	}
@@ -279,7 +279,7 @@ func (s *Service) List(ctx context.Context, scope apikey.Scope, params ListParam
 	if total > 0 {
 		pages = (total + params.ItemsPerPage - 1) / params.ItemsPerPage
 	}
-	return &ListResult{
+	return &ShortURLList{
 		Data: data,
 		Pagination: Pagination{
 			CurrentPage:        params.Page,

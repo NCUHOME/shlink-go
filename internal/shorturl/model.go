@@ -36,7 +36,7 @@ type ShortURL struct {
 
 type Pagination = page.Pagination
 
-type ListResult struct {
+type ShortURLList struct {
 	Data       []ShortURL `json:"data"`
 	Pagination Pagination `json:"pagination"`
 }

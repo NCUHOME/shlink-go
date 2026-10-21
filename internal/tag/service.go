@@ -25,7 +25,7 @@ type ListParams struct {
 	OrderBy      string
 }
 
-type ListResult struct {
+type TagList struct {
 	Data       []string        `json:"data"`
 	Pagination page.Pagination `json:"pagination"`
 }
@@ -72,7 +72,7 @@ func (e *ConflictError) Error() string {
 	return "tag conflict: " + e.OldName + " -> " + e.NewName
 }
 
-func (s *Service) List(ctx context.Context, scope apikey.Scope, params ListParams) (*ListResult, error) {
+func (s *Service) List(ctx context.Context, scope apikey.Scope, params ListParams) (*TagList, error) {
 	where, args := s.visibilityWhere(scope, params.SearchTerm)
 	total, err := s.count(ctx, where, args)
 	if err != nil {
@@ -93,7 +93,7 @@ func (s *Service) List(ctx context.Context, scope apikey.Scope, params ListParam
 	).Scan(ctx, &data); err != nil {
 		return nil, err
 	}
-	return &ListResult{Data: data, Pagination: page.New(pageNo, perPage, total, len(data))}, nil
+	return &TagList{Data: data, Pagination: page.New(pageNo, perPage, total, len(data))}, nil
 }
 
 func (s *Service) Stats(ctx context.Context, scope apikey.Scope, params ListParams) (*StatsResult, error) {

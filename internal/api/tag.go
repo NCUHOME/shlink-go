@@ -23,7 +23,7 @@ type listTagsInput struct {
 
 type listTagsOutput struct {
 	Body struct {
-		Tags tag.ListResult `json:"tags"`
+		Tags tag.TagList `json:"tags"`
 	}
 }
 

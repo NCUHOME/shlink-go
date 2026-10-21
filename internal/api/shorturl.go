@@ -54,7 +54,7 @@ type shortURLOutput struct {
 
 type listShortURLsOutput struct {
 	Body struct {
-		ShortURLs shorturl.ListResult `json:"shortUrls"`
+		ShortURLs shorturl.ShortURLList `json:"shortUrls"`
 	}
 }
 
