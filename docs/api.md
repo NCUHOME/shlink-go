@@ -104,7 +104,7 @@ Mercure 未配置，`/mercure-info` 固定返回 `501 mercure-not-configured`。
 }
 ```
 
-已实现的错误类型：`invalid-data`、`non-unique-slug`、`short-url-not-found`、`invalid-short-url-deletion`、`domain-not-found`、`forbidden-tag-operation`、`tag-conflict`、`tag-not-found`、`mercure-not-configured`、`missing-authentication`、`invalid-api-key`、`malformed-request-body`、`not-found`。
+已实现的错误类型：`invalid-data`、`non-unique-slug`、`short-url-not-found`、`invalid-short-url-deletion`、`domain-not-found`、`forbidden-tag-operation`、`forbidden-operation`、`tag-conflict`、`tag-not-found`、`mercure-not-configured`、`missing-authentication`、`invalid-api-key`、`malformed-request-body`、`not-found`。
 
 ## 认证与权限
 
@@ -114,8 +114,8 @@ Mercure 未配置，`/mercure-info` 固定返回 `501 mercure-not-configured`。
 
 | 角色 | 语义 |
 |---|---|
-| `AUTHORED_SHORT_URLS` | 只能访问由该 Key 创建的短链 |
-| `DOMAIN_SPECIFIC` | 只能访问指定域名的短链，创建时强制使用该域名 |
+| `AUTHORED_SHORT_URLS` | 只能访问由该 Key 创建的短链；无 orphan 访问权限 |
+| `DOMAIN_SPECIFIC` | 只能访问指定域名的短链，创建时强制使用该域名；orphan 访问的读写和域名跳转设置均限定在该域名内 |
 | `NO_ORPHAN_VISITS` | orphan 访问列表为空、统计为 0、删除为空操作 |
 
 多个角色同时存在时，短链级限制按交集生效，`NO_ORPHAN_VISITS` 作为额外限制叠加。
