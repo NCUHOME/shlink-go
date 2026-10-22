@@ -63,14 +63,14 @@ func TestGlobalVisitsAndStats(t *testing.T) {
 			name: "domain", apiKey: "domain_api_key",
 			stats: visit.Stats{
 				NonOrphanVisits: visit.Summary{},
-				OrphanVisits:    visit.Summary{Total: 3, NonBots: 2, Bots: 1},
+				OrphanVisits:    visit.Summary{Total: 1, NonBots: 0, Bots: 1},
 			},
 		},
 		{
 			name: "author", apiKey: "author_api_key",
 			stats: visit.Stats{
 				NonOrphanVisits: visit.Summary{Total: 5, NonBots: 4, Bots: 1},
-				OrphanVisits:    visit.Summary{Total: 3, NonBots: 2, Bots: 1},
+				OrphanVisits:    visit.Summary{},
 			},
 		},
 		{
@@ -368,8 +368,20 @@ func TestDeleteOrphanVisits(t *testing.T) {
 	rec = performRequest(t, app.Handler(), http.MethodGet, "/rest/v3/visits/orphan", requestOptions{APIKey: "valid_api_key"})
 	require.Equal(t, 3, decodeBody[orphanVisitsPayload](t, rec).Visits.Pagination.TotalItems)
 
+	// A domain-scoped key may only delete orphan visits of its own domain.
+	rec = performRequest(t, app.Handler(), http.MethodDelete, "/rest/v3/visits/orphan", requestOptions{APIKey: "domain_api_key"})
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, int64(1), decodeBody[deletedVisitsPayload](t, rec).DeletedVisits)
+	rec = performRequest(t, app.Handler(), http.MethodGet, "/rest/v3/visits/orphan", requestOptions{APIKey: "valid_api_key"})
+	require.Equal(t, 2, decodeBody[orphanVisitsPayload](t, rec).Visits.Pagination.TotalItems)
+
+	// An author-scoped key has no access to orphan visits at all.
+	rec = performRequest(t, app.Handler(), http.MethodDelete, "/rest/v3/visits/orphan", requestOptions{APIKey: "author_api_key"})
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, int64(0), decodeBody[deletedVisitsPayload](t, rec).DeletedVisits)
+
 	rec = performRequest(t, app.Handler(), http.MethodDelete, "/rest/v3/visits/orphan", requestOptions{APIKey: "valid_api_key"})
-	require.Equal(t, int64(3), decodeBody[deletedVisitsPayload](t, rec).DeletedVisits)
+	require.Equal(t, int64(2), decodeBody[deletedVisitsPayload](t, rec).DeletedVisits)
 	rec = performRequest(t, app.Handler(), http.MethodGet, "/rest/v3/visits/orphan", requestOptions{APIKey: "valid_api_key"})
 	require.Equal(t, 0, decodeBody[orphanVisitsPayload](t, rec).Visits.Pagination.TotalItems)
 }
