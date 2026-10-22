@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -85,13 +86,25 @@ func RegisterDomains(api huma.API, repo *domain.Repository) {
 		if !ok {
 			return nil, problem.MissingAuthentication()
 		}
-		_ = principal
 		var body updateDomainRedirectsBody
 		if p := DecodeJSONBytes(input.RawBody, &body); p != nil {
 			return nil, p
 		}
 		if !shorturl.ValidAuthority(body.Domain) {
 			return nil, problem.InvalidData("domain")
+		}
+		if !principal.Scope.IsAdmin {
+			// Domain-scoped keys may only manage the domain they are bound to.
+			if principal.Scope.DomainID == nil {
+				return nil, problem.ForbiddenOperation("update domain redirects")
+			}
+			scoped, err := repo.Get(ctx, *principal.Scope.DomainID)
+			if err != nil {
+				return nil, internalProblem(ctx, err)
+			}
+			if !strings.EqualFold(scoped.Authority, domain.NormalizeAuthority(body.Domain)) {
+				return nil, problem.ForbiddenOperation("update domain redirects")
+			}
 		}
 		updated, err := repo.UpdateRedirects(ctx, body.Domain, domain.RedirectsPatch{
 			BaseURLRedirect:            body.BaseURLRedirect.ValuePtr(),

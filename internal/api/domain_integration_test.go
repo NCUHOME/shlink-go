@@ -4,6 +4,7 @@ package api_test
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -154,4 +155,32 @@ func TestDomainRedirects(t *testing.T) {
 			require.Equal(t, tc.expected, decodeBody[redirectsPayload](t, rec))
 		})
 	}
+}
+
+func TestUpdateDomainRedirectsRequiresPermission(t *testing.T) {
+	db := testutil.NewPostgres(t)
+	fixtures := testutil.SeedBase(t, db)
+	testutil.SeedShortURLs(t, db, fixtures)
+	app := testutil.NewApp(t, db)
+
+	patch := func(apiKey, domain, redirect string) *httptest.ResponseRecorder {
+		return performRequest(t, app.Handler(), http.MethodPatch, "/rest/v3/domains/redirects", requestOptions{
+			APIKey: apiKey,
+			Body:   map[string]any{"domain": domain, "regular404Redirect": redirect},
+		})
+	}
+
+	// A domain-scoped key may update its own domain.
+	require.Equal(t, http.StatusOK, patch("domain_api_key", "example.com", "https://example.com/404").Code)
+
+	// ...but not any other domain.
+	rec := patch("domain_api_key", "s.test", "https://attacker.example/404")
+	requireProblem(t, rec, http.StatusForbidden, problem.TypeForbiddenOperation)
+
+	// Keys scoped to authored short URLs cannot manage domain redirects at all.
+	rec = patch("author_api_key", "s.test", "https://attacker.example/404")
+	requireProblem(t, rec, http.StatusForbidden, problem.TypeForbiddenOperation)
+
+	// Admin keys are unrestricted.
+	require.Equal(t, http.StatusOK, patch("valid_api_key", "s.test", "https://example.com/404").Code)
 }

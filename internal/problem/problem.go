@@ -16,6 +16,7 @@ const (
 	TypeInvalidShortURLDeletion = "https://shlink.io/api/error/invalid-short-url-deletion"
 	TypeDomainNotFound          = "https://shlink.io/api/error/domain-not-found"
 	TypeForbiddenTagOperation   = "https://shlink.io/api/error/forbidden-tag-operation"
+	TypeForbiddenOperation      = "https://shlink.io/api/error/forbidden-operation"
 	TypeTagConflict             = "https://shlink.io/api/error/tag-conflict"
 	TypeTagNotFound             = "https://shlink.io/api/error/tag-not-found"
 	TypeMercureNotConfigured    = "https://shlink.io/api/error/mercure-not-configured"
@@ -144,6 +145,15 @@ func ForbiddenTagOperation(operation string) *Problem {
 		TypeForbiddenTagOperation,
 		"Forbidden tag operation",
 		"You are not allowed to "+operation+" tags",
+	)
+}
+
+func ForbiddenOperation(operation string) *Problem {
+	return New(
+		http.StatusForbidden,
+		TypeForbiddenOperation,
+		"Forbidden operation",
+		"You are not allowed to "+operation,
 	)
 }
 
