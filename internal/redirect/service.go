@@ -217,8 +217,8 @@ func (s *Service) handleRobots(c *gin.Context) {
 }
 
 func (s *Service) ruleRequest(request *http.Request) redirectrule.RequestData {
-	ip := net.ParseIP(clientIP(request))
-	location := s.visits.Location(clientIP(request), false)
+	ip := net.ParseIP(s.clientIP(request))
+	location := s.visits.Location(s.clientIP(request), false)
 	data := redirectrule.RequestData{
 		UserAgent:      request.UserAgent(),
 		AcceptLanguage: request.Header.Get("Accept-Language"),
@@ -244,7 +244,7 @@ func (s *Service) track(c *gin.Context, domainID, shortURLID int64, redirectURL 
 		DomainID:    &domID,
 		Referer:     c.Request.Referer(),
 		UserAgent:   c.Request.UserAgent(),
-		RemoteIP:    clientIP(c.Request),
+		RemoteIP:    s.clientIP(c.Request),
 		VisitedURL:  visitedURL(c.Request),
 		RedirectURL: redirectURL,
 		At:          s.clock.Now(),
@@ -263,7 +263,7 @@ func (s *Service) trackOrphan(c *gin.Context, domainID int64, orphanType string,
 		OrphanType:  orphanType,
 		Referer:     c.Request.Referer(),
 		UserAgent:   c.Request.UserAgent(),
-		RemoteIP:    clientIP(c.Request),
+		RemoteIP:    s.clientIP(c.Request),
 		VisitedURL:  visitedURL(c.Request),
 		RedirectURL: redirectURL,
 		At:          s.clock.Now(),
@@ -312,7 +312,14 @@ func requestAuthority(request *http.Request) string {
 	return strings.Trim(host, "[]")
 }
 
-func clientIP(request *http.Request) string {
+// clientIP returns the address of the client. Forwarding headers are only
+// honoured when the request comes from a trusted proxy; otherwise any client
+// could spoof its IP (and thus IP-based redirect rules and visit geolocation).
+func (s *Service) clientIP(request *http.Request) string {
+	remote := remoteIP(request)
+	if !s.trustedProxy(remote) {
+		return remote
+	}
 	for _, header := range []string{
 		"CF-Connecting-IP",
 		"X-Forwarded-For",
@@ -333,11 +340,38 @@ func clientIP(request *http.Request) string {
 			return strings.TrimSpace(strings.Split(value, ",")[0])
 		}
 	}
+	return remote
+}
+
+func remoteIP(request *http.Request) string {
 	host, _, err := net.SplitHostPort(request.RemoteAddr)
 	if err == nil {
 		return host
 	}
 	return strings.Trim(request.RemoteAddr, "[]")
+}
+
+func (s *Service) trustedProxy(raw string) bool {
+	ip := net.ParseIP(strings.TrimSpace(raw))
+	if ip == nil {
+		return false
+	}
+	for _, entry := range s.cfg.TrustedProxies {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		if _, network, err := net.ParseCIDR(entry); err == nil {
+			if network.Contains(ip) {
+				return true
+			}
+			continue
+		}
+		if candidate := net.ParseIP(entry); candidate != nil && candidate.Equal(ip) {
+			return true
+		}
+	}
+	return false
 }
 
 func parseForwardedFor(value string) string {

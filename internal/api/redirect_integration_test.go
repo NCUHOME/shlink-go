@@ -68,6 +68,19 @@ func TestRedirectRulesMatchUpstreamCases(t *testing.T) {
 			require.Equal(t, "https://example.com/static-ip-address", rec.Header().Get("Location"))
 		})
 	}
+
+	// Forwarding headers from untrusted peers must be ignored, otherwise any
+	// visitor could spoof the IP and match IP-based redirect rules.
+	for _, header := range []string{"CF-Connecting-IP", "X-Forwarded-For", "X-Real-IP"} {
+		t.Run("untrusted ip header "+header, func(t *testing.T) {
+			rec := performRequest(t, app.Handler(), http.MethodGet, "/def456", requestOptions{
+				Headers:    map[string]string{header: "1.2.3.4"},
+				RemoteAddr: "203.0.113.9:1234",
+			})
+			require.Equal(t, http.StatusFound, rec.Code)
+			require.NotEqual(t, "https://example.com/static-ip-address", rec.Header().Get("Location"))
+		})
+	}
 }
 
 func TestRedirectNonHTTPLongURLs(t *testing.T) {

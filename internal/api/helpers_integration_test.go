@@ -15,10 +15,11 @@ import (
 )
 
 type requestOptions struct {
-	APIKey  string
-	Body    any
-	Headers map[string]string
-	Host    string
+	APIKey     string
+	Body       any
+	Headers    map[string]string
+	Host       string
+	RemoteAddr string
 }
 
 func performRequest(t *testing.T, handler http.Handler, method, path string, opts requestOptions) *httptest.ResponseRecorder {
@@ -43,6 +44,9 @@ func performRequest(t *testing.T, handler http.Handler, method, path string, opt
 	}
 	if opts.Host != "" {
 		req.Host = opts.Host
+	}
+	if opts.RemoteAddr != "" {
+		req.RemoteAddr = opts.RemoteAddr
 	}
 	for key, value := range opts.Headers {
 		req.Header.Set(key, value)

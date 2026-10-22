@@ -45,5 +45,6 @@ func TestConfig() config.Config {
 		DefaultShortCodesChars:  "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
 		LogLevel:                "error",
 		TrackOrphanVisits:       true,
+		TrustedProxies:          []string{"192.0.2.1"},
 	}
 }
