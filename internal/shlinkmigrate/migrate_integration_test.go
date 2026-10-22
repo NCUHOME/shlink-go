@@ -42,7 +42,7 @@ func TestRunImportsShlinkData(t *testing.T) {
 		Authority string `bun:"authority"`
 		IsDefault bool   `bun:"is_default"`
 	}
-	require.NoError(t, target.NewSelect().Table("domains").Where("authority = ?", "s.test").Scan(t.Context(), &domain))
+	require.NoError(t, target.NewSelect().Table("domains").Column("authority", "is_default").Where("authority = ?", "s.test").Scan(t.Context(), &domain))
 	require.True(t, domain.IsDefault)
 
 	var shortURL struct {
@@ -50,7 +50,7 @@ func TestRunImportsShlinkData(t *testing.T) {
 		VisitsTotal      int64  `bun:"visits_total"`
 		HasRedirectRules bool   `bun:"has_redirect_rules"`
 	}
-	require.NoError(t, target.NewSelect().Table("short_urls").Where("short_code = ?", "abc123").Scan(t.Context(), &shortURL))
+	require.NoError(t, target.NewSelect().Table("short_urls").Column("long_url", "visits_total", "has_redirect_rules").Where("short_code = ?", "abc123").Scan(t.Context(), &shortURL))
 	require.Equal(t, "https://example.com/imported", shortURL.LongURL)
 	require.Equal(t, int64(1), shortURL.VisitsTotal)
 	require.True(t, shortURL.HasRedirectRules)

@@ -13,7 +13,7 @@ type Time struct {
 }
 
 func NewTime(t time.Time) Time {
-	return Time{Time: t}
+	return Time{Time: t.UTC()}
 }
 
 func (t Time) MarshalJSON() ([]byte, error) {
@@ -36,7 +36,7 @@ func (t *Time) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	t.Time = parsed
+	t.Time = parsed.UTC()
 	return nil
 }
 
