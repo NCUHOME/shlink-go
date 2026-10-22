@@ -62,10 +62,10 @@ func (s *Service) Create(ctx context.Context, scope apikey.Scope, authorAPIKeyID
 	tags := NormalizeTags(params.Tags)
 
 	if params.FindIfExists {
-		if id, err := s.findMatching(ctx, dom.ID, params, tags); err != nil {
+		if id, err := s.findMatching(ctx, scope, dom.ID, params, tags); err != nil {
 			return nil, err
 		} else if id != 0 {
-			return s.getByID(ctx, id)
+			return s.getByID(ctx, scope, id)
 		}
 	}
 
@@ -98,7 +98,7 @@ func (s *Service) Create(ctx context.Context, scope apikey.Scope, authorAPIKeyID
 		}
 		createdID, err = s.insertShortURL(ctx, authorAPIKeyID, dom, code, params, title, crawlable, forwardQuery, tags)
 		if err == nil {
-			dto, err := s.getByID(ctx, createdID)
+			dto, err := s.getByID(ctx, scope, createdID)
 			if err != nil {
 				return nil, err
 			}
@@ -376,7 +376,7 @@ func (s *Service) Update(ctx context.Context, scope apikey.Scope, shortCode stri
 			return nil, err
 		}
 	}
-	return s.getByID(ctx, row.ID)
+	return s.getByID(ctx, scope, row.ID)
 }
 
 func (s *Service) Delete(ctx context.Context, scope apikey.Scope, shortCode string, domainParam *string) error {
@@ -457,14 +457,18 @@ func (s *Service) findByCode(ctx context.Context, scope apikey.Scope, shortCode 
 	return row, nil
 }
 
-func (s *Service) getByID(ctx context.Context, id int64) (*ShortURL, error) {
+func (s *Service) getByID(ctx context.Context, scope apikey.Scope, id int64) (*ShortURL, error) {
 	row := new(storedShortURL)
+	where, args := s.scopeWhere(scope)
+	where = append(where, "s.id = ?")
+	args = append(args, id)
 	query := `SELECT s.id, s.domain_id, s.short_code, s.long_url, s.title, s.date_created,
 		s.valid_since, s.valid_until, s.max_visits, s.crawlable, s.forward_query,
 		s.author_api_key_id, s.has_redirect_rules, s.visits_total, s.visits_non_bots,
 		s.visits_bots, d.authority, d.is_default
-		FROM short_urls s JOIN domains d ON d.id = s.domain_id WHERE s.id = ?`
-	if err := s.db.NewRaw(query, id).Scan(ctx, row); err != nil {
+		FROM short_urls s JOIN domains d ON d.id = s.domain_id
+		WHERE ` + strings.Join(where, " AND ")
+	if err := s.db.NewRaw(query, args...).Scan(ctx, row); err != nil {
 		return nil, err
 	}
 	return s.buildDTO(ctx, row)
@@ -611,22 +615,29 @@ func (s *Service) replaceTags(ctx context.Context, tx bun.Tx, shortURLID int64, 
 	return nil
 }
 
-func (s *Service) findMatching(ctx context.Context, domainID int64, params CreateParams, tags []string) (int64, error) {
-	query := `SELECT id FROM short_urls
-		WHERE domain_id = ? AND long_url = ?
-		AND valid_since IS NOT DISTINCT FROM ?
-		AND valid_until IS NOT DISTINCT FROM ?
-		AND max_visits IS NOT DISTINCT FROM ?`
+func (s *Service) findMatching(ctx context.Context, scope apikey.Scope, domainID int64, params CreateParams, tags []string) (int64, error) {
+	query := `SELECT s.id FROM short_urls s
+		WHERE s.domain_id = ? AND s.long_url = ?
+		AND s.valid_since IS NOT DISTINCT FROM ?
+		AND s.valid_until IS NOT DISTINCT FROM ?
+		AND s.max_visits IS NOT DISTINCT FROM ?`
 	args := []any{domainID, params.LongURL, params.ValidSince, params.ValidUntil, params.MaxVisits}
+	// Apply the same restrictions as the read endpoints, so an existing short URL
+	// outside the key's scope is never returned (and never leaks its details).
+	conditions, conditionArgs := scope.ShortURLConditions("s")
+	for _, condition := range conditions {
+		query += " AND " + condition
+	}
+	args = append(args, conditionArgs...)
 	if params.CustomSlug != nil {
 		slug, err := NormalizeSlug(*params.CustomSlug)
 		if err != nil {
 			return 0, &ValidationError{Elements: []string{"customSlug"}}
 		}
-		query += " AND short_code = ?"
+		query += " AND s.short_code = ?"
 		args = append(args, slug)
 	}
-	query += " ORDER BY id DESC"
+	query += " ORDER BY s.id DESC"
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return 0, err

@@ -5,6 +5,7 @@ package api_test
 import (
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -506,4 +507,33 @@ func cloneMap(input map[string]any) map[string]any {
 
 func stringPtr(value string) *string {
 	return &value
+}
+
+func TestFindIfExistsRespectsAPIKeyScope(t *testing.T) {
+	db := testutil.NewPostgres(t)
+	fixtures := testutil.SeedBase(t, db)
+	testutil.SeedShortURLs(t, db, fixtures)
+	app := testutil.NewApp(t, db)
+
+	create := func(t *testing.T, body map[string]any, apiKey string) *httptest.ResponseRecorder {
+		t.Helper()
+		return performRequest(t, app.Handler(), http.MethodPost, "/rest/v3/short-urls", requestOptions{APIKey: apiKey, Body: body})
+	}
+
+	adminRec := create(t, map[string]any{"longUrl": "https://example.com/private", "customSlug": "private-slug"}, "valid_api_key")
+	require.Equal(t, http.StatusOK, adminRec.Code, adminRec.Body.String())
+	adminCreated := decodeBody[shortURLPayload](t, adminRec)
+
+	// The author-scoped key must not discover the admin's short URL through
+	// findIfExists, and must not be able to reuse its custom slug.
+	authorRec := create(t, map[string]any{"longUrl": "https://example.com/private", "findIfExists": true}, "author_api_key")
+	require.Equal(t, http.StatusOK, authorRec.Code, authorRec.Body.String())
+	authorCreated := decodeBody[shortURLPayload](t, authorRec)
+	require.NotEqual(t, adminCreated.ShortCode, authorCreated.ShortCode)
+
+	conflictRec := create(t, map[string]any{"longUrl": "https://example.com/private", "customSlug": "private-slug", "findIfExists": true}, "author_api_key")
+	requireProblem(t, conflictRec, http.StatusBadRequest, problem.TypeNonUniqueSlug)
+
+	direct := performRequest(t, app.Handler(), http.MethodGet, "/rest/v3/short-urls/"+adminCreated.ShortCode, requestOptions{APIKey: "author_api_key"})
+	requireProblem(t, direct, http.StatusNotFound, problem.TypeShortURLNotFound)
 }
