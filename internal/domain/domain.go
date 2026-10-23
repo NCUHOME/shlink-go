@@ -10,7 +10,7 @@ import (
 
 	"github.com/uptrace/bun"
 
-	"github.com/hakimyu/shlink-go/internal/apikey"
+	"github.com/NCUnix/shlink-go/internal/apikey"
 )
 
 type Domain struct {

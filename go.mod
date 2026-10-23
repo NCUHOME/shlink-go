@@ -1,4 +1,4 @@
-module github.com/hakimyu/shlink-go
+module github.com/NCUnix/shlink-go
 
 go 1.27.3
 

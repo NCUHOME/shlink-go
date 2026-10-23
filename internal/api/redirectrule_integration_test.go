@@ -8,9 +8,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hakimyu/shlink-go/internal/problem"
-	"github.com/hakimyu/shlink-go/internal/redirectrule"
-	"github.com/hakimyu/shlink-go/internal/testutil"
+	"github.com/NCUnix/shlink-go/internal/problem"
+	"github.com/NCUnix/shlink-go/internal/redirectrule"
+	"github.com/NCUnix/shlink-go/internal/testutil"
 )
 
 func condition(typ string, matchKey, matchValue *string) redirectrule.Condition {

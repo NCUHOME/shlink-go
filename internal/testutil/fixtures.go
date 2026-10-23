@@ -10,8 +10,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hakimyu/shlink-go/internal/apikey"
-	"github.com/hakimyu/shlink-go/internal/store"
+	"github.com/NCUnix/shlink-go/internal/apikey"
+	"github.com/NCUnix/shlink-go/internal/store"
 )
 
 type Fixtures struct {

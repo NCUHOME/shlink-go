@@ -20,12 +20,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/uptrace/bun"
 
-	"github.com/hakimyu/shlink-go/internal/apikey"
-	"github.com/hakimyu/shlink-go/internal/app"
-	"github.com/hakimyu/shlink-go/internal/config"
-	"github.com/hakimyu/shlink-go/internal/domain"
-	"github.com/hakimyu/shlink-go/internal/shlinkmigrate"
-	"github.com/hakimyu/shlink-go/internal/store"
+	"github.com/NCUnix/shlink-go/internal/apikey"
+	"github.com/NCUnix/shlink-go/internal/app"
+	"github.com/NCUnix/shlink-go/internal/config"
+	"github.com/NCUnix/shlink-go/internal/domain"
+	"github.com/NCUnix/shlink-go/internal/shlinkmigrate"
+	"github.com/NCUnix/shlink-go/internal/store"
 )
 
 func Execute() int {

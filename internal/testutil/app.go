@@ -10,10 +10,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	application "github.com/hakimyu/shlink-go/internal/app"
-	"github.com/hakimyu/shlink-go/internal/clock"
-	"github.com/hakimyu/shlink-go/internal/config"
-	"github.com/hakimyu/shlink-go/internal/store"
+	application "github.com/NCUnix/shlink-go/internal/app"
+	"github.com/NCUnix/shlink-go/internal/clock"
+	"github.com/NCUnix/shlink-go/internal/config"
+	"github.com/NCUnix/shlink-go/internal/store"
 )
 
 func NewApp(t *testing.T, db *store.DB) *application.App {

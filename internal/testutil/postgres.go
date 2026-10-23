@@ -11,7 +11,7 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 
-	"github.com/hakimyu/shlink-go/internal/store"
+	"github.com/NCUnix/shlink-go/internal/store"
 )
 
 func NewPostgres(t *testing.T) *store.DB {

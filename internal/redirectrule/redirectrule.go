@@ -12,8 +12,8 @@ import (
 
 	"github.com/uptrace/bun"
 
-	"github.com/hakimyu/shlink-go/internal/shorturl"
-	"github.com/hakimyu/shlink-go/internal/ua"
+	"github.com/NCUnix/shlink-go/internal/shorturl"
+	"github.com/NCUnix/shlink-go/internal/ua"
 )
 
 type Condition struct {

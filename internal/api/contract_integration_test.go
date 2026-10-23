@@ -14,7 +14,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hakimyu/shlink-go/internal/testutil"
+	"github.com/NCUnix/shlink-go/internal/testutil"
 )
 
 func TestV3ResponsesMatchOpenAPIContract(t *testing.T) {

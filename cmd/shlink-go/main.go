@@ -7,7 +7,7 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"github.com/hakimyu/shlink-go/internal/cli"
+	"github.com/NCUnix/shlink-go/internal/cli"
 )
 
 func main() {

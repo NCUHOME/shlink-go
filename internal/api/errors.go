@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/hakimyu/shlink-go/internal/problem"
+	"github.com/NCUnix/shlink-go/internal/problem"
 )
 
 func internalProblem(ctx context.Context, err error) *problem.Problem {

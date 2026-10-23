@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hakimyu/shlink-go/internal/store"
+	"github.com/NCUnix/shlink-go/internal/store"
 )
 
 var ErrTargetNotEmpty = errors.New("target database is not empty")

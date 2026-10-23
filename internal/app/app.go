@@ -3,19 +3,19 @@ package app
 import (
 	"log/slog"
 
-	"github.com/hakimyu/shlink-go/internal/api"
-	"github.com/hakimyu/shlink-go/internal/apikey"
-	"github.com/hakimyu/shlink-go/internal/clock"
-	"github.com/hakimyu/shlink-go/internal/config"
-	"github.com/hakimyu/shlink-go/internal/domain"
-	"github.com/hakimyu/shlink-go/internal/geoip"
-	"github.com/hakimyu/shlink-go/internal/redirect"
-	"github.com/hakimyu/shlink-go/internal/redirectrule"
-	"github.com/hakimyu/shlink-go/internal/server"
-	"github.com/hakimyu/shlink-go/internal/shorturl"
-	"github.com/hakimyu/shlink-go/internal/store"
-	"github.com/hakimyu/shlink-go/internal/tag"
-	"github.com/hakimyu/shlink-go/internal/visit"
+	"github.com/NCUnix/shlink-go/internal/api"
+	"github.com/NCUnix/shlink-go/internal/apikey"
+	"github.com/NCUnix/shlink-go/internal/clock"
+	"github.com/NCUnix/shlink-go/internal/config"
+	"github.com/NCUnix/shlink-go/internal/domain"
+	"github.com/NCUnix/shlink-go/internal/geoip"
+	"github.com/NCUnix/shlink-go/internal/redirect"
+	"github.com/NCUnix/shlink-go/internal/redirectrule"
+	"github.com/NCUnix/shlink-go/internal/server"
+	"github.com/NCUnix/shlink-go/internal/shorturl"
+	"github.com/NCUnix/shlink-go/internal/store"
+	"github.com/NCUnix/shlink-go/internal/tag"
+	"github.com/NCUnix/shlink-go/internal/visit"
 )
 
 type App struct {

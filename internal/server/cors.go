@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/hakimyu/shlink-go/internal/config"
+	"github.com/NCUnix/shlink-go/internal/config"
 )
 
 func corsMiddleware(cfg config.Config) gin.HandlerFunc {

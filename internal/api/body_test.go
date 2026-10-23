@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hakimyu/shlink-go/internal/problem"
+	"github.com/NCUnix/shlink-go/internal/problem"
 )
 
 func TestDecodeJSONReturnsProblemForMalformedBody(t *testing.T) {

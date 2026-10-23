@@ -11,9 +11,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hakimyu/shlink-go/internal/apikey"
-	"github.com/hakimyu/shlink-go/internal/problem"
-	"github.com/hakimyu/shlink-go/internal/testutil"
+	"github.com/NCUnix/shlink-go/internal/apikey"
+	"github.com/NCUnix/shlink-go/internal/problem"
+	"github.com/NCUnix/shlink-go/internal/testutil"
 )
 
 func TestAuthenticateFixtures(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hakimyu/shlink-go/internal/store"
+	"github.com/NCUnix/shlink-go/internal/store"
 )
 
 func SeedVisits(t *testing.T, db *store.DB, f Fixtures, shortURLs map[string]ShortURLFixture) {

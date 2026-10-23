@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/hakimyu/shlink-go/internal/problem"
+	"github.com/NCUnix/shlink-go/internal/problem"
 )
 
 func DecodeJSON(c *gin.Context, dst any) *problem.Problem {

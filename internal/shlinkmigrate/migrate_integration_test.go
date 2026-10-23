@@ -11,10 +11,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hakimyu/shlink-go/internal/apikey"
-	"github.com/hakimyu/shlink-go/internal/shlinkmigrate"
-	"github.com/hakimyu/shlink-go/internal/store"
-	"github.com/hakimyu/shlink-go/internal/testutil"
+	"github.com/NCUnix/shlink-go/internal/apikey"
+	"github.com/NCUnix/shlink-go/internal/shlinkmigrate"
+	"github.com/NCUnix/shlink-go/internal/store"
+	"github.com/NCUnix/shlink-go/internal/testutil"
 )
 
 func TestRunImportsShlinkData(t *testing.T) {

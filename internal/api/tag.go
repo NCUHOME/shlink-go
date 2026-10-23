@@ -8,10 +8,10 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/hakimyu/shlink-go/internal/api/query"
-	"github.com/hakimyu/shlink-go/internal/apikey"
-	"github.com/hakimyu/shlink-go/internal/problem"
-	"github.com/hakimyu/shlink-go/internal/tag"
+	"github.com/NCUnix/shlink-go/internal/api/query"
+	"github.com/NCUnix/shlink-go/internal/apikey"
+	"github.com/NCUnix/shlink-go/internal/problem"
+	"github.com/NCUnix/shlink-go/internal/tag"
 )
 
 type listTagsInput struct {

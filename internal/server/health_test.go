@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hakimyu/shlink-go/internal/config"
+	"github.com/NCUnix/shlink-go/internal/config"
 )
 
 func TestHealthWithoutDatabaseReturnsServiceUnavailable(t *testing.T) {

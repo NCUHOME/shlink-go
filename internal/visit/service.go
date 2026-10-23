@@ -10,13 +10,13 @@ import (
 
 	"github.com/uptrace/bun"
 
-	"github.com/hakimyu/shlink-go/internal/api/types"
-	"github.com/hakimyu/shlink-go/internal/apikey"
-	"github.com/hakimyu/shlink-go/internal/clock"
-	"github.com/hakimyu/shlink-go/internal/config"
-	"github.com/hakimyu/shlink-go/internal/geoip"
-	"github.com/hakimyu/shlink-go/internal/page"
-	"github.com/hakimyu/shlink-go/internal/ua"
+	"github.com/NCUnix/shlink-go/internal/api/types"
+	"github.com/NCUnix/shlink-go/internal/apikey"
+	"github.com/NCUnix/shlink-go/internal/clock"
+	"github.com/NCUnix/shlink-go/internal/config"
+	"github.com/NCUnix/shlink-go/internal/geoip"
+	"github.com/NCUnix/shlink-go/internal/page"
+	"github.com/NCUnix/shlink-go/internal/ua"
 )
 
 type Service struct {

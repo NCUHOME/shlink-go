@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/uptrace/bun/migrate"
 
-	"github.com/hakimyu/shlink-go/internal/store"
-	"github.com/hakimyu/shlink-go/internal/testutil"
-	"github.com/hakimyu/shlink-go/migrations"
+	"github.com/NCUnix/shlink-go/internal/store"
+	"github.com/NCUnix/shlink-go/internal/testutil"
+	"github.com/NCUnix/shlink-go/migrations"
 )
 
 func TestMigrationsCanRollbackAndRunAgain(t *testing.T) {

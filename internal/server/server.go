@@ -7,10 +7,10 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
 
-	"github.com/hakimyu/shlink-go/internal/api"
-	"github.com/hakimyu/shlink-go/internal/api/query"
-	"github.com/hakimyu/shlink-go/internal/config"
-	"github.com/hakimyu/shlink-go/internal/store"
+	"github.com/NCUnix/shlink-go/internal/api"
+	"github.com/NCUnix/shlink-go/internal/api/query"
+	"github.com/NCUnix/shlink-go/internal/config"
+	"github.com/NCUnix/shlink-go/internal/store"
 )
 
 type App struct {

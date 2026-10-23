@@ -6,7 +6,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/hakimyu/shlink-go/internal/problem"
+	"github.com/NCUnix/shlink-go/internal/problem"
 )
 
 func RegisterMercure(api huma.API) {

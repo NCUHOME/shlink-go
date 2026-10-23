@@ -9,8 +9,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hakimyu/shlink-go/internal/problem"
-	"github.com/hakimyu/shlink-go/internal/testutil"
+	"github.com/NCUnix/shlink-go/internal/problem"
+	"github.com/NCUnix/shlink-go/internal/testutil"
 )
 
 type redirectsPayload struct {

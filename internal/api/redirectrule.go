@@ -7,10 +7,10 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/hakimyu/shlink-go/internal/apikey"
-	"github.com/hakimyu/shlink-go/internal/problem"
-	"github.com/hakimyu/shlink-go/internal/redirectrule"
-	"github.com/hakimyu/shlink-go/internal/shorturl"
+	"github.com/NCUnix/shlink-go/internal/apikey"
+	"github.com/NCUnix/shlink-go/internal/problem"
+	"github.com/NCUnix/shlink-go/internal/redirectrule"
+	"github.com/NCUnix/shlink-go/internal/shorturl"
 )
 
 type redirectRulesOutput struct {

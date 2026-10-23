@@ -9,12 +9,12 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/hakimyu/shlink-go/internal/apikey"
-	"github.com/hakimyu/shlink-go/internal/domain"
-	"github.com/hakimyu/shlink-go/internal/problem"
-	"github.com/hakimyu/shlink-go/internal/shorturl"
-	"github.com/hakimyu/shlink-go/internal/tag"
-	"github.com/hakimyu/shlink-go/internal/visit"
+	"github.com/NCUnix/shlink-go/internal/apikey"
+	"github.com/NCUnix/shlink-go/internal/domain"
+	"github.com/NCUnix/shlink-go/internal/problem"
+	"github.com/NCUnix/shlink-go/internal/shorturl"
+	"github.com/NCUnix/shlink-go/internal/tag"
+	"github.com/NCUnix/shlink-go/internal/visit"
 )
 
 type visitsInput struct {

@@ -85,7 +85,7 @@
 ### 任务
 
 - [x] **P0-T1** 创建 `docs/PLAN.md`，写入目标、阶段、Gate、恢复规则。
-- [x] **P0-T2** 初始化 `go.mod`，module 路径为 `github.com/hakimyu/shlink-go`，Go 版本 1.27。
+- [x] **P0-T2** 初始化 `go.mod`，module 路径为 `github.com/NCUnix/shlink-go`，Go 版本 1.27。
 - [x] **P0-T3** 创建 `.gitignore`，忽略二进制、测试缓存、覆盖率、`.env`、临时文件。
 - [x] **P0-T4** 创建 `Makefile`，提供 `build`、`test`、`test-integration`、`lint`、`fmt`、`vet`。
 - [x] **P0-T5** 建立目录骨架：`cmd/shlink-go`、`internal/{config,server,api,problem,store,apikey,domain,shorturl,tag,visit,redirect,redirectrule,geoip,ua}`、`migrations`。
@@ -490,7 +490,7 @@ go test -tags=integration ./internal/shlinkmigrate/...
 
 ## 决策记录
 
-- **D1**：Go module path 使用 `github.com/hakimyu/shlink-go`。
+- **D1**：Go module path 使用 `github.com/NCUnix/shlink-go`。
 - **D2**：旧 Shlink 数据迁移通过独立源库导入到空的新库；不兼容原 schema 原地运行。
 - **D3**：上游 `test-api` 是阻塞验收套件，v1/v2 与超范围用例显式豁免。
 - **D4**：只做本地 commit；未经许可不 push。

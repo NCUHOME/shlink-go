@@ -6,7 +6,7 @@ import (
 
 	"github.com/uptrace/bun/migrate"
 
-	"github.com/hakimyu/shlink-go/migrations"
+	"github.com/NCUnix/shlink-go/migrations"
 )
 
 func Migrate(ctx context.Context, db *DB) error {

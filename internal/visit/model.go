@@ -3,9 +3,9 @@ package visit
 import (
 	"time"
 
-	"github.com/hakimyu/shlink-go/internal/api/types"
-	"github.com/hakimyu/shlink-go/internal/geoip"
-	"github.com/hakimyu/shlink-go/internal/page"
+	"github.com/NCUnix/shlink-go/internal/api/types"
+	"github.com/NCUnix/shlink-go/internal/geoip"
+	"github.com/NCUnix/shlink-go/internal/page"
 )
 
 const (

@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hakimyu/shlink-go/internal/shorturl"
+	"github.com/NCUnix/shlink-go/internal/shorturl"
 )
 
 func TestBuildRedirectURLForwardsQuery(t *testing.T) {
